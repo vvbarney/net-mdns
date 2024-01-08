@@ -1,4 +1,7 @@
 using Makaretu.Dns;
+
+using Microsoft.Extensions.Logging;
+
 using System;
 using System.Linq;
 
@@ -6,13 +9,22 @@ namespace Browser
 {
     class Program
     {
+        private static ILoggerFactory loggerFactory = CreateLoggerFactory();
+
+        private static ILoggerFactory CreateLoggerFactory()
+        {
+            return LoggerFactory.Create(b => b
+               .SetMinimumLevel(LogLevel.Debug)
+               .AddConsole());
+        }
+
+
         public static void Main(string[] args)
         {
-            var mdns = new MulticastService();
-            var sd = new ServiceDiscovery(mdns);
+            var mdns = new MulticastService(log: loggerFactory.CreateLogger<MulticastService>());
+            var sd = new ServiceDiscovery(mdns, log: loggerFactory.CreateLogger<ServiceDiscovery>());
 
-            mdns.NetworkInterfaceDiscovered += (s, e) =>
-            {
+            mdns.NetworkInterfaceDiscovered += (s, e) => {
                 foreach (var nic in e.NetworkInterfaces)
                 {
                     Console.WriteLine($"NIC '{nic.Name}'");
@@ -22,24 +34,21 @@ namespace Browser
                 sd.QueryAllServices();
             };
 
-            sd.ServiceDiscovered += (s, serviceName) =>
-            {
+            sd.ServiceDiscovered += (s, serviceName) => {
                 Console.WriteLine($"service '{serviceName}'");
 
                 // Ask for the name of instances of the service.
                 mdns.SendQuery(serviceName, type: DnsType.PTR);
             };
 
-            sd.ServiceInstanceDiscovered += (s, e) =>
-            {
+            sd.ServiceInstanceDiscovered += (s, e) => {
                 Console.WriteLine($"service instance '{e.ServiceInstanceName}'");
 
                 // Ask for the service instance details.
                 mdns.SendQuery(e.ServiceInstanceName, type: DnsType.SRV);
             };
 
-            mdns.AnswerReceived += (s, e) =>
-            {
+            mdns.AnswerReceived += (s, e) => {
                 // Is this an answer to a service instance details?
                 var servers = e.Message.Answers.OfType<SRVRecord>();
                 foreach (var server in servers)

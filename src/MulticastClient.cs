@@ -17,7 +17,7 @@ namespace Makaretu.Dns
     /// </summary>
     class MulticastClient : IDisposable
     {
-        static readonly ILogger<MulticastClient> log;
+        private readonly ILogger<MulticastClient> log;
 
         /// <summary>
         ///   The port number assigned to Multicast DNS.
@@ -37,8 +37,10 @@ namespace Makaretu.Dns
 
         public event EventHandler<UdpReceiveResult> MessageReceived;
 
-        public MulticastClient(bool useIPv4, bool useIpv6, IEnumerable<NetworkInterface> nics)
+        public MulticastClient(bool useIPv4, bool useIpv6, IEnumerable<NetworkInterface> nics, ILogger<MulticastClient> log = null)
         {
+            this.log = log;
+
             // Setup the receivers.
             receivers = new List<UdpClient>();
 

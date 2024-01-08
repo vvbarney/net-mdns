@@ -31,7 +31,7 @@ namespace Makaretu.Dns
         private const int maxDatagramSize = Message.MaxLength;
 
         private static readonly TimeSpan maxLegacyUnicastTTL = TimeSpan.FromSeconds(10);
-        static readonly ILogger<MulticastService> log;
+        private readonly ILogger<MulticastService> log;
 
         private List<NetworkInterface> knownNics = new List<NetworkInterface>();
         private int maxPacketSize;
@@ -125,14 +125,15 @@ namespace Makaretu.Dns
         /// <param name="filter">
         ///   Multicast listener will be bound to result of filtering function.
         /// </param>
-        public MulticastService(Func<IEnumerable<NetworkInterface>, IEnumerable<NetworkInterface>> filter = null)
+        public MulticastService(Func<IEnumerable<NetworkInterface>, IEnumerable<NetworkInterface>> filter = null, ILogger<MulticastService> log = null)
         {
             networkInterfacesFilter = filter;
-
+            this.log = log;
             UseIpv4 = Socket.OSSupportsIPv4;
             UseIpv6 = Socket.OSSupportsIPv6;
             IgnoreDuplicateMessages = true;
         }
+
 
         /// <summary>
         ///   Send and receive on IPv4.

@@ -16,7 +16,7 @@ namespace Makaretu.Dns
     /// <seealso href="https://tools.ietf.org/html/rfc6763">RFC 6763 DNS-Based Service Discovery</seealso>
     public class ServiceDiscovery : IServiceDiscovery
     {
-        static readonly ILogger<ServiceDiscovery> log;
+        private readonly ILogger<ServiceDiscovery> log;
         private static readonly DomainName LocalDomain = new DomainName("local");
         private static readonly DomainName SubName = new DomainName("_sub");
         private static readonly ushort transaction = (ushort)new Random().Next(10000, int.MaxValue);
@@ -52,9 +52,12 @@ namespace Makaretu.Dns
         /// <param name="mdns">
         ///   The underlying <see cref="IMulticastService"/> to use.
         /// </param>
-        public ServiceDiscovery(IMulticastService mdns)
+        /// <param name="logger">Answer, query, send Logger.</param>
+        /// 
+        public ServiceDiscovery(IMulticastService mdns, ILogger<ServiceDiscovery> log = null)
         {
             this.Mdns = mdns;
+            this.log = log;
             mdns.QueryReceived += OnQuery;
             mdns.AnswerReceived += OnAnswer;
         }
@@ -455,7 +458,7 @@ namespace Makaretu.Dns
 
             log?.LogDebug($"Sending answer");
 
-            if(log?.IsEnabled(LogLevel.Trace) == true)
+            if (log?.IsEnabled(LogLevel.Trace) == true)
                 log?.LogTrace(response.ToString());
             //Console.WriteLine($"Response time {(DateTime.Now - request.CreationTime).TotalMilliseconds}ms");
         }

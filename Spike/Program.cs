@@ -1,4 +1,7 @@
 ﻿using Makaretu.Dns;
+
+using Microsoft.Extensions.Logging;
+
 using System;
 using System.Linq;
 
@@ -6,22 +9,21 @@ namespace Spike
 {
     class Program
     {
+        private static ILoggerFactory loggerFactory = CreateLoggerFactory();
+
+        private static ILoggerFactory CreateLoggerFactory()
+        {
+            return LoggerFactory.Create(b => b
+               .SetMinimumLevel(LogLevel.Trace)
+               .AddConsole());
+        }
+
+
         static void Main(string[] args)
         {
             Console.WriteLine("Multicast DNS spike");
 
-            //// set logemger factory
-            //var properties = new Common.Logging.Configuration.NameValueCollection
-            //{
-            //    ["level"] = "TRACE",
-            //    ["showLogName"] = "true",
-            //    ["showDateTime"] = "true",
-            //    ["dateTimeFormat"] = "HH:mm:ss.fff"
-
-            //};
-            //LogManager.Adapter = new ConsoleOutLoggerFactoryAdapter(properties);
-
-            var mdns = new MulticastService();
+            var mdns = new MulticastService(log: loggerFactory.CreateLogger<MulticastService>());
 
             foreach (var a in MulticastService.GetIPAddresses())
             {
@@ -49,7 +51,7 @@ namespace Spike
                 }
             };
 
-            var sd = new ServiceDiscovery(mdns);
+            var sd = new ServiceDiscovery(mdns, log: loggerFactory.CreateLogger<ServiceDiscovery>());
             sd.Advertise(new ServiceProfile("ipfs1", "_ipfs-discovery._udp", 5010));
             sd.Advertise(new ServiceProfile("x1", "_xservice._tcp", 5011));
             sd.Advertise(new ServiceProfile("x2", "_xservice._tcp", 666));
