@@ -1,5 +1,4 @@
-﻿using Common.Logging;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +6,8 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+
+using Microsoft.Extensions.Logging;
 
 namespace Makaretu.Dns
 {
@@ -16,7 +17,7 @@ namespace Makaretu.Dns
     /// </summary>
     class MulticastClient : IDisposable
     {
-        static readonly ILog log = LogManager.GetLogger(typeof(MulticastClient));
+        static readonly ILogger<MulticastClient> log;
 
         /// <summary>
         ///   The port number assigned to Multicast DNS.
@@ -96,7 +97,7 @@ namespace Makaretu.Dns
                     }
 
                     receivers.Add(sender);
-                    log.Debug($"Will send via {localEndpoint}");
+                    log.LogDebug($"Will send via {localEndpoint}");
                     if (!senders.TryAdd(address, sender)) // Should not fail
                     {
                         sender.Dispose();
@@ -109,7 +110,7 @@ namespace Makaretu.Dns
                 }
                 catch (Exception e)
                 {
-                    log.Error($"Cannot setup send socket for {address}: {e.Message}");
+                    log?.LogError($"Cannot setup send socket for {address}: {e.Message}");
                     sender.Dispose();
                 }
             }
@@ -135,7 +136,7 @@ namespace Makaretu.Dns
                 }
                 catch (Exception e)
                 {
-                    log.Error($"Sender {sender.Key} failure: {e.Message}");
+                    log?.LogError($"Sender {sender.Key} failure: {e.Message}");
                     // eat it.
                 }
             }

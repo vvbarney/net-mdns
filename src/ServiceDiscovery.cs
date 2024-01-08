@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Common.Logging;
+
 using Makaretu.Dns.Resolving;
+
+using Microsoft.Extensions.Logging;
 
 namespace Makaretu.Dns
 {
@@ -14,7 +16,7 @@ namespace Makaretu.Dns
     /// <seealso href="https://tools.ietf.org/html/rfc6763">RFC 6763 DNS-Based Service Discovery</seealso>
     public class ServiceDiscovery : IServiceDiscovery
     {
-        private static readonly ILog log = LogManager.GetLogger(typeof(ServiceDiscovery));
+        static readonly ILogger<ServiceDiscovery> log;
         private static readonly DomainName LocalDomain = new DomainName("local");
         private static readonly DomainName SubName = new DomainName("_sub");
         private static readonly ushort transaction = (ushort)new Random().Next(10000, int.MaxValue);
@@ -88,8 +90,7 @@ namespace Makaretu.Dns
         /// <value>
         ///   Is used to answer questions.
         /// </value>
-        public NameServer NameServer { get; } = new NameServer
-        {
+        public NameServer NameServer { get; } = new NameServer {
             Catalog = new Catalog(),
             AnswerAllQuestions = true
         };
@@ -240,8 +241,7 @@ namespace Makaretu.Dns
 
             foreach (var subtype in service.Subtypes)
             {
-                var ptr = new PTRRecord
-                {
+                var ptr = new PTRRecord {
                     Name = DomainName.Join(
                         new DomainName(subtype),
                         SubName,
@@ -267,14 +267,12 @@ namespace Makaretu.Dns
         public bool Probe(ServiceProfile profile)
         {
             conflict = false;
-            Message msg = new Message
-            {
+            Message msg = new Message {
                 Opcode = MessageOperation.Query,
                 QR = false,
                 Id = transaction
             };
-            msg.Questions.Add(new Question
-            {
+            msg.Questions.Add(new Question {
                 Name = profile.HostName,
                 Class = DnsClass.IN,
                 Type = DnsType.ANY
@@ -317,8 +315,7 @@ namespace Makaretu.Dns
             message.Answers.Add(ptrRecord);
 
             // Add the resource records.
-            profile.Resources.ForEach((resource) =>
-            {
+            profile.Resources.ForEach((resource) => {
                 message.Answers.Add(resource);
             });
 
@@ -339,8 +336,7 @@ namespace Makaretu.Dns
             ptrRecord.TTL = TimeSpan.Zero;
 
             message.Answers.Add(ptrRecord);
-            profile.Resources.ForEach((resource) =>
-            {
+            profile.Resources.ForEach((resource) => {
                 resource.TTL = TimeSpan.Zero;
                 message.AdditionalRecords.Add(resource);
             });
@@ -361,14 +357,10 @@ namespace Makaretu.Dns
         private void OnAnswer(object sender, MessageEventArgs e)
         {
             var msg = e.Message;
-            if (log.IsDebugEnabled)
-            {
-                log.Debug($"Answer from {e.RemoteEndPoint}");
-            }
-            if (log.IsTraceEnabled)
-            {
-                log.Trace(msg);
-            }
+            log?.LogDebug($"Answer from {e.RemoteEndPoint}");
+
+            if (log?.IsEnabled(LogLevel.Trace) == true)
+                log?.LogTrace(msg.ToString());
 
             // Any DNS-SD answers?
             if (msg.Id == transaction)
@@ -388,8 +380,7 @@ namespace Makaretu.Dns
                 }
                 else if (ptr.TTL == TimeSpan.Zero)
                 {
-                    var args = new ServiceInstanceShutdownEventArgs
-                    {
+                    var args = new ServiceInstanceShutdownEventArgs {
                         ServiceInstanceName = ptr.DomainName,
                         Message = msg
                     };
@@ -397,8 +388,7 @@ namespace Makaretu.Dns
                 }
                 else
                 {
-                    var args = new ServiceInstanceDiscoveryEventArgs
-                    {
+                    var args = new ServiceInstanceDiscoveryEventArgs {
                         ServiceInstanceName = ptr.DomainName,
                         Message = msg
                     };
@@ -411,14 +401,10 @@ namespace Makaretu.Dns
         {
             var request = e.Message;
 
-            if (log.IsDebugEnabled)
-            {
-                log.Debug($"Query from {e.RemoteEndPoint}");
-            }
-            if (log.IsTraceEnabled)
-            {
-                log.Trace(request);
-            }
+            log?.LogDebug($"Query from {e.RemoteEndPoint}");
+
+            if (log?.IsEnabled(LogLevel.Trace) == true)
+                log?.LogTrace(request.ToString());
 
             // Determine if this query is requesting a unicast response
             // and normalise the Class.
@@ -467,14 +453,10 @@ namespace Makaretu.Dns
                 Mdns.SendAnswer(response, e);
             }
 
-            if (log.IsDebugEnabled)
-            {
-                log.Debug($"Sending answer");
-            }
-            if (log.IsTraceEnabled)
-            {
-                log.Trace(response);
-            }
+            log?.LogDebug($"Sending answer");
+
+            if(log?.IsEnabled(LogLevel.Trace) == true)
+                log?.LogTrace(response.ToString());
             //Console.WriteLine($"Response time {(DateTime.Now - request.CreationTime).TotalMilliseconds}ms");
         }
 
